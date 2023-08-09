@@ -18,7 +18,7 @@ export const register = async (req, res) => {
         });
 
         const user = await document.save();
-        const token = jwt.sign({_id: user._id}, process.end.SECRET, {expiresIn: '1d'});
+        const token = jwt.sign({_id: user._id}, process.env.SECRET, {expiresIn: '1d'});
 
         res.json({user, token});
 
@@ -50,7 +50,7 @@ export const login = async (req, res) => {
             })
         }
 
-        const token = jwt.sign({_id: user._id}, process.end.SECRET, {expiresIn: '1d'});
+        const token = jwt.sign({_id: user._id}, process.env.SECRET, {expiresIn: '1d'});
 
         res.json({token})
 

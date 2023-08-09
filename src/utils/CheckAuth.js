@@ -8,7 +8,7 @@ export default (req, res, next) => {
 
         try {
 
-            const decoded = jwt.verify(token, process.end.SECRET);
+            const decoded = jwt.verify(token, process.env.SECRET);
 
             req.userId = decoded._id;
             next();

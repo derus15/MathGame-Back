@@ -15,7 +15,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 const app = express();
 const PORT = 3020;
-const whiteList = [process.env.CORS_WHITE_LIST];
+const whiteList = ['http://localhost:3000/', process.env.CORS_WHITE_LIST];
 
 app.use(express.json());
 app.use(cors({
