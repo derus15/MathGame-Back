@@ -20,12 +20,12 @@ export const register = async (req, res) => {
         const user = await document.save();
         const token = jwt.sign({_id: user._id}, process.env.SECRET, {expiresIn: '1d'});
 
-        res.json({user, token});
+        res.json({token});
 
     } catch (err) {
         console.log('Ошибка с сервером ' + err)
         res.status(500).json({
-            message: 'Не удалось зарегистрироваться'
+            message: 'E-mail уже используется'
         })
     }
 }
@@ -81,5 +81,34 @@ export const getMe = async (req, res) => {
         res.status(500).json({
             message: 'Нет доступа'
         })
+    }
+}
+
+export const changeProfile = async (req, res) => {
+    try {
+
+        const password = req.body.password;
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
+
+        await User.updateOne(
+            { _id: req.userId },
+            { $set:
+                    {
+                        name: req.body.name,
+                        email: req.body.email,
+                        password: passwordHash,
+                    }
+            }
+        );
+
+        res.status(200).json({
+            message: 'Данные обновлены'
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            message: 'Не удалось обновить данные'
+        });
     }
 }

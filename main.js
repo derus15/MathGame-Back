@@ -33,6 +33,8 @@ app.post('/auth/register', registerValidator, HandleValidationsErrors, UserContr
 app.post('/auth/login', loginValidator, HandleValidationsErrors, UserController.login);
 app.get('/auth/me', checkAuth, UserController.getMe);
 
+app.patch('/user/changeData', checkAuth, registerValidator, HandleValidationsErrors, UserController.changeProfile)
+
 app.post('/session', checkAuth, SessionController.saveSession)
 app.get('/account', checkAuth, SessionController.account)
 
