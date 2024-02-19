@@ -11,6 +11,16 @@ export const register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
+        const existUserWithEmail = await User.findOne({ email: req.body.email });
+        if (existUserWithEmail) {
+            return res.status(400).json({ message: 'E-mail уже используется' });
+        }
+
+        const existUserWithName = await User.findOne({ name: req.body.name });
+        if (existUserWithName) {
+            return res.status(400).json({ message: 'Имя занято' });
+        }
+
         const document = new User({
             email: req.body.email,
             name: req.body.name,
@@ -25,7 +35,7 @@ export const register = async (req, res) => {
     } catch (err) {
         console.log('Ошибка с сервером ' + err)
         res.status(500).json({
-            message: 'E-mail уже используется'
+            message: 'Ошибка сервера'
         })
     }
 }
