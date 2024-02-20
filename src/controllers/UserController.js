@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-
+import 'dotenv/config.js';
 
 export const register = async (req, res) => {
 
@@ -95,19 +95,47 @@ export const getMe = async (req, res) => {
 }
 
 export const changeProfile = async (req, res) => {
+
     try {
+
+        const user = await User.findById(req.userId);
+        const isEqualPass = await bcrypt.compare(req.body.password, user.password);
 
         const password = req.body.password;
         const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(password, salt);
+
+        let newName =  req.body.name;
+        let newPassword = await bcrypt.hash(password, salt);
+
+        if (isEqualPass) {
+            return res.status(400).json({ message: 'Вы используете старый пароль' });
+        }
+
+        const existUserWithName = await User.findOne({ name: req.body.name });
+        if (existUserWithName) {
+            return res.status(400).json({ message: 'Имя занято' });
+        }
+
+        if (!req.body.name && !req.body.password) {
+            return res.status(400).json({
+                message: 'Нет данных'
+            });
+        }
+
+        if (!req.body.name) {
+            newName = user.name;
+        }
+
+        if (!req.body.password) {
+            newPassword = user.password;
+        }
 
         await User.updateOne(
             { _id: req.userId },
             { $set:
                     {
-                        name: req.body.name,
-                        email: req.body.email,
-                        password: passwordHash,
+                        name: newName,
+                        password: newPassword,
                     }
             }
         );
@@ -120,5 +148,31 @@ export const changeProfile = async (req, res) => {
         res.status(500).json({
             message: 'Не удалось обновить данные'
         });
+    }
+}
+
+export const checkPassword = async (req, res) => {
+
+    try {
+
+        const user = await User.findById(req.userId);
+
+        const isValidPass = await bcrypt.compare(req.body.password, user.password);
+
+        if (!isValidPass) {
+            return res.status(400).json({
+                message: 'Неверный пароль'
+            })
+        }
+
+        res.json({
+            isValid: true
+        })
+
+    } catch (err) {
+        console.log('Ошибка с сервером ' + err);
+        res.status(500).json({
+            message: 'Не удалось проверить пароль'
+        })
     }
 }

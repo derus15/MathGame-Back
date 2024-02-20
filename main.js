@@ -1,11 +1,12 @@
 import express from 'express';
 import mongoose from "mongoose";
-import {loginValidator, registerValidator} from "./src/utils/Validators.js";
+import {loginValidator, registerValidator, updateDataValidator} from "./src/utils/Validators.js";
 import checkAuth from "./src/utils/CheckAuth.js";
 import cors from 'cors';
 import * as UserController from './src/controllers/UserController.js'
 import * as SessionController from './src/controllers/SessionController.js'
 import HandleValidationsErrors from "./src/utils/HandleValidationsErrors.js";
+import 'dotenv/config.js';
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('База подключена'))
@@ -15,7 +16,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 const app = express();
 const PORT = 3020;
-const whiteList = ['http://localhost:3000/', process.env.CORS_WHITE_LIST];
+const whiteList = [ process.env.CORS_WHITE_LIST ];
 
 app.use(express.json());
 app.use(cors({
@@ -33,7 +34,8 @@ app.post('/auth/register', registerValidator, HandleValidationsErrors, UserContr
 app.post('/auth/login', loginValidator, HandleValidationsErrors, UserController.login);
 app.get('/auth/me', checkAuth, UserController.getMe);
 
-app.patch('/user/changeData', checkAuth, registerValidator, HandleValidationsErrors, UserController.changeProfile)
+app.patch('/user/changeData', checkAuth, updateDataValidator, HandleValidationsErrors, UserController.changeProfile);
+app.post('/user/checkPassword', checkAuth, UserController.checkPassword);
 
 app.post('/session', checkAuth, SessionController.saveSession)
 app.get('/account', checkAuth, SessionController.account)
