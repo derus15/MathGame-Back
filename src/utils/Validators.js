@@ -18,7 +18,7 @@ export const updateDataValidator = [
                 return true;
             }
 
-            if (req.body.name && req.body.name.length >= 2) {
+            if (req.body.name && req.body.name.length >= 2 && req.body.name.length <= 20 ) {
                 return true
             }
         })
