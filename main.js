@@ -5,8 +5,10 @@ import checkAuth from "./src/utils/CheckAuth.js";
 import cors from 'cors';
 import * as UserController from './src/controllers/UserController.js'
 import * as SessionController from './src/controllers/SessionController.js'
+import * as AccountController from './src/controllers/AccountController.js'
 import HandleValidationsErrors from "./src/utils/HandleValidationsErrors.js";
 import 'dotenv/config.js';
+import {checkPassword} from "./src/utils/CheckPassword.js";
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('База подключена'))
@@ -34,11 +36,11 @@ app.post('/auth/register', registerValidator, HandleValidationsErrors, UserContr
 app.post('/auth/login', loginValidator, HandleValidationsErrors, UserController.login);
 app.get('/auth/me', checkAuth, UserController.getMe);
 
-app.patch('/user/changeData', checkAuth, updateDataValidator, HandleValidationsErrors, UserController.changeProfile);
-app.post('/user/checkPassword', checkAuth, UserController.checkPassword);
+app.patch('/user/changeData', checkAuth, updateDataValidator, HandleValidationsErrors, AccountController.changeAccountData);
+app.post('/user/checkPassword', checkAuth, checkPassword);
 
 app.post('/session', checkAuth, SessionController.saveSession)
-app.get('/account', checkAuth, SessionController.account)
+app.get('/account', checkAuth, AccountController.getAccountData)
 
 app.listen(process.env.PORT || PORT, (err) => {
     if (err) {

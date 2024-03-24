@@ -25,6 +25,18 @@ const SessionSchema = new mongoose.Schema({
         ref: 'User',
     },
 
+    eps: {
+        type: String,
+    },
+
+    modifications: {
+        type: Array,
+    },
+
+    unexpectedEnd: {
+        type: Boolean,
+    }
+
 },
     {
         timestamps: true,
