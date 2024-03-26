@@ -33,6 +33,75 @@ export const getAccountData = async (req, res) => {
 
 }
 
+export const getAccountDataHighlight = async (req, res) => {
+
+    try {
+
+        const user = new mongoose.Types.ObjectId(req.userId);
+
+        const timeBoard = await Session.aggregate([
+            {
+                $match: {
+                    user: user,
+                    unexpectedEnd: false,
+                    mode: 'Стандарт',
+                    $or: [
+                        { time: 15 },
+                        { time: 30 },
+                        { time: 60 }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: "$time",
+                    title: { $max: "$time" },
+                    eps: { $max: "$eps" },
+                    additionalParameter: { $max: "$number" }
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+        ]);
+
+        const numberBoard = await Session.aggregate([
+            {
+                $match: {
+                    user: user,
+                    unexpectedEnd: false,
+                    mode: 'Спринт',
+                    $or: [
+                        { number: 10 },
+                        { number: 15 },
+                        { number: 20 }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: "$number",
+                    title: { $max: "$number" },
+                    eps: { $max: "$eps" },
+                    additionalParameter: { $max: "$time" }
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+        ]);
+
+        res.status(200).json({timeBoard: timeBoard, numberBoard: numberBoard});
+
+    } catch (err) {
+        console.log('С загрузкой данных произошла ошибка ' + err);
+        res.status(500).json({
+            message: 'Не удалось получить данные'
+        })
+    }
+
+}
+
 export const changeAccountData = async (req, res) => {
 
     try {

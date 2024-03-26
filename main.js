@@ -39,8 +39,9 @@ app.get('/auth/me', checkAuth, UserController.getMe);
 app.patch('/user/changeData', checkAuth, updateDataValidator, HandleValidationsErrors, AccountController.changeAccountData);
 app.post('/user/checkPassword', checkAuth, checkPassword);
 
-app.post('/session', checkAuth, SessionController.saveSession)
-app.get('/account', checkAuth, AccountController.getAccountData)
+app.post('/session', checkAuth, SessionController.saveSession);
+app.get('/account', checkAuth, AccountController.getAccountData);
+app.get('/account/highlight', checkAuth, AccountController.getAccountDataHighlight);
 
 app.listen(process.env.PORT || PORT, (err) => {
     if (err) {
