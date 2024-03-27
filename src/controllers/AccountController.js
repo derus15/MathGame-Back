@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import Session from "../models/Session.js";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import {timeNormalization} from "../utils/timeNormalization.js";
 
 export const getAccountData = async (req, res) => {
 
@@ -46,9 +47,9 @@ export const getAccountDataHighlight = async (req, res) => {
                     unexpectedEnd: false,
                     mode: 'Стандарт',
                     $or: [
-                        { time: 15 },
-                        { time: 30 },
-                        { time: 60 }
+                        {time: 15},
+                        {time: 30},
+                        {time: 60}
                     ]
                 }
             },
@@ -83,13 +84,21 @@ export const getAccountDataHighlight = async (req, res) => {
                     _id: "$number",
                     title: { $max: "$number" },
                     eps: { $max: "$eps" },
-                    additionalParameter: { $max: "$time" }
+                    additionalParameter: { $min: "$time" }
                 }
             },
             {
                 $sort: { _id: 1 }
             }
         ]);
+
+        timeBoard.forEach(item => {
+            item.title = timeNormalization(item.title);
+        });
+
+        numberBoard.forEach(item => {
+            item.additionalParameter = timeNormalization(item.additionalParameter)
+        })
 
         res.status(200).json({timeBoard: timeBoard, numberBoard: numberBoard});
 
