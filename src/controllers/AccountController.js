@@ -167,3 +167,25 @@ export const changeAccountData = async (req, res) => {
         });
     }
 }
+
+export const getName = async (req, res) => {
+
+    try {
+
+        const user = await User.findById(req.userId, {name: 1});
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'Пользователь не найден'
+            })
+        }
+
+        res.json(user);
+
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({
+            message: 'Нет доступа'
+        })
+    }
+}

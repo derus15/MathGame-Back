@@ -34,7 +34,7 @@ app.use(cors({
 
 app.post('/auth/register', registerValidator, HandleValidationsErrors, UserController.register)
 app.post('/auth/login', loginValidator, HandleValidationsErrors, UserController.login);
-app.get('/auth/me', checkAuth, UserController.getMe);
+app.get('/auth/init', checkAuth, UserController.getMe);
 
 app.patch('/user/changeData', checkAuth, updateDataValidator, HandleValidationsErrors, AccountController.changeAccountData);
 app.post('/user/checkPassword', checkAuth, checkPassword);
@@ -42,6 +42,7 @@ app.post('/user/checkPassword', checkAuth, checkPassword);
 app.post('/session', checkAuth, SessionController.saveSession);
 app.get('/account', checkAuth, AccountController.getAccountData);
 app.get('/account/highlight', checkAuth, AccountController.getAccountDataHighlight);
+app.get('/account/name', checkAuth, AccountController.getName);
 
 app.listen(process.env.PORT || PORT, (err) => {
     if (err) {
