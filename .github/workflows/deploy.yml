@@ -1,0 +1,19 @@
+name: deploy
+
+on:
+  push:
+    branches:
+     - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH Command
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          user: ${{ secrets.DEPLOY_SSH_USERNAME }}
+          private_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          host_fingerprint: ${{ secrets.DEPLOY_SSH_FINGERPRINT }}
+          command: source ~/.nvm/nvm.sh; echo 'i m working'
