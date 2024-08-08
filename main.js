@@ -31,7 +31,7 @@ app.use(cors({
         return callback(null, true);
     }
 }));
-
+// test
 app.post('/auth/register', registerValidator, HandleValidationsErrors, UserController.register)
 app.post('/auth/login', loginValidator, HandleValidationsErrors, UserController.login);
 app.get('/auth/init', checkAuth, UserController.getMe);
