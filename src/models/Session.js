@@ -20,6 +20,10 @@ const SessionSchema = new mongoose.Schema({
         type: Number,
     },
 
+    rounds: {
+        type: Number,
+    },
+
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
