@@ -11,12 +11,14 @@ export const checkPassword = async (req, res) => {
 
         if (!isValidPass) {
             return res.status(400).json({
+                isValid: false,
                 message: 'Неверный пароль'
             })
         }
 
         res.json({
-            isValid: true
+            isValid: true,
+            message: 'Верный пароль'
         })
 
     } catch (err) {
