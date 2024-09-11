@@ -87,3 +87,50 @@ export const getMe = async (req, res) => {
         })
     }
 }
+
+export const getUserAvatar = async (req, res) => {
+
+    try {
+
+        const user = await User.findById(req.userId, {avatarSeed: 1});
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'Пользователь не найден'
+            })
+        }
+
+        res.json({
+            avatarSeed: user.avatarSeed ?? null,
+        });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({
+            message: 'Ошибка при загрузке аватара'
+        })
+    }
+
+}
+
+export const saveUserAvatar = async (req, res) => {
+
+    try {
+
+        await User.updateOne(
+            { _id: req.userId },
+            { $set: { avatarSeed: req.body.seed } }
+        );
+
+        res.json({
+            message: 'Аватар изменен'
+        })
+
+    } catch(err) {
+        console.log(err);
+        res.status(500).json({
+            message: 'Ошибка при сохранении сида аватарки'
+        })
+    }
+
+}

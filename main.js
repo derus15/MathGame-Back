@@ -31,13 +31,15 @@ app.use(cors({
         return callback(null, true);
     }
 }));
-// test
+
 app.post('/auth/register', registerValidator, HandleValidationsErrors, UserController.register)
 app.post('/auth/login', loginValidator, HandleValidationsErrors, UserController.login);
 app.get('/auth/init', checkAuth, UserController.getMe);
 
 app.patch('/user/changeData', checkAuth, updateDataValidator, HandleValidationsErrors, AccountController.changeAccountData);
 app.post('/user/checkPassword', checkAuth, checkPassword);
+app.get('/user/userAvatar', checkAuth, UserController.getUserAvatar);
+app.post('/user/saveUserAvatar', checkAuth, UserController.saveUserAvatar);
 
 app.post('/session', checkAuth, SessionController.saveSession);
 app.get('/account', checkAuth, AccountController.getAccountData);
