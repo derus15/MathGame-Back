@@ -9,6 +9,7 @@ export const saveSession = async (req, res) => {
             sign: req.body.sign,
             mode: req.body.mode,
             time: req.body.time,
+            rounds: req.body.rounds,
             number: req.body.number,
             eps: req.body.eps,
             modifications: req.body.modifications,
