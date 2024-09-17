@@ -19,10 +19,9 @@ const userSchema = new mongoose.Schema({
         required: true
     },
 
-    // avatarSeed: {
-    //     type: String,
-    //     required: true,
-    // },
+    avatarSeed: {
+        type: String,
+    },
 
     },
 {

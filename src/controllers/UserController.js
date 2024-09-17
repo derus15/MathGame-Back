@@ -101,7 +101,7 @@ export const getUserAvatar = async (req, res) => {
         }
 
         res.json({
-            avatarSeed: user.avatarSeed ?? null,
+            avatarSeed: user.avatarSeed ?? 'none',
         });
 
     } catch (err) {
