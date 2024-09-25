@@ -4,26 +4,32 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import {timeNormalization} from "../utils/timeNormalization.js";
 
-export const getAccountData = async (req, res) => {
+export const getAccountUserInfo = async (req, res) => {
 
     try {
 
         const user = await User.findById(req.userId, {name: 1});
-        const counterTime = await Session.aggregate([
+        const timeInfo = await Session.aggregate([
 
             {$match: {user: new mongoose.Types.ObjectId(req.userId)}},
-            {$group: {_id: "$user", total_time: {$sum: "$time"}}},
+            {$group: {_id: "$user", totalTime: {$sum: "$time"}}},
 
         ]);
 
-        const counterExample = await Session.aggregate([
+        const exampleInfo = await Session.aggregate([
 
             {$match: {user: new mongoose.Types.ObjectId(req.userId)}},
-            {$group: {_id: "$user", total_example: {$sum: "$number"}}},
+            {$group: {_id: "$user", totalExample: {$sum: "$number"}}},
 
         ]);
 
-        res.status(200).json({user, counterTime, counterExample});
+        const result = {
+            user,
+            totalTimeInfo: timeInfo[0]?.totalTime || 0,
+            totalExampleInfo: exampleInfo[0]?.totalExample || 0,
+        }
+
+        res.status(200).json(result);
 
     } catch (err) {
         console.log('С загрузкой данных произошла ошибка ' + err);

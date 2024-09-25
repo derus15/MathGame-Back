@@ -42,7 +42,7 @@ app.get('/user/userAvatar', checkAuth, UserController.getUserAvatar);
 app.post('/user/saveUserAvatar', checkAuth, UserController.saveUserAvatar);
 
 app.post('/session', checkAuth, SessionController.saveSession);
-app.get('/account', checkAuth, AccountController.getAccountData);
+app.get('/account/info', checkAuth, AccountController.getAccountUserInfo);
 app.get('/account/highlight', checkAuth, AccountController.getAccountDataHighlight);
 app.get('/account/name', checkAuth, AccountController.getName);
 
