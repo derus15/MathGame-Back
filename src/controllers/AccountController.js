@@ -46,17 +46,16 @@ export const getAccountDataHighlight = async (req, res) => {
 
         const user = new mongoose.Types.ObjectId(req.userId);
 
+        const timeOptions = [15, 30, 60];
+        const numberOptions = [10, 15, 20];
+
         const timeBoard = await Session.aggregate([
             {
                 $match: {
                     user: user,
                     unexpectedEnd: false,
                     mode: 'Стандарт',
-                    $or: [
-                        {time: 15},
-                        {time: 30},
-                        {time: 60}
-                    ]
+                    $or: timeOptions.map(time => ({ time }))
                 }
             },
             {
@@ -78,11 +77,7 @@ export const getAccountDataHighlight = async (req, res) => {
                     user: user,
                     unexpectedEnd: false,
                     mode: 'Спринт',
-                    $or: [
-                        { number: 10 },
-                        { number: 15 },
-                        { number: 20 }
-                    ]
+                    $or: numberOptions.map(number => ({ number }))
                 }
             },
             {
@@ -98,24 +93,34 @@ export const getAccountDataHighlight = async (req, res) => {
             }
         ]);
 
-        timeBoard.forEach(item => {
-            item.title = timeNormalization(item.title);
+        const normalizedTimeBoard = timeOptions.map(option => {
+            const item = timeBoard.find(item => item._id === option);
+            return {
+                title: timeNormalization(item ? item.title : option),
+                eps: item ? item.eps : null,
+                additionalParameter: item ? item.additionalParameter : null
+            };
         });
 
-        numberBoard.forEach(item => {
-            item.additionalParameter = timeNormalization(item.additionalParameter)
-        })
+        const normalizedNumberBoard = numberOptions.map(option => {
+            const item = numberBoard.find(item => item._id === option);
+            return {
+                title: item ? item.title : option,
+                eps: item ? item.eps : null,
+                additionalParameter: item ? timeNormalization(item.additionalParameter) : null
+            };
+        });
 
-        res.status(200).json({timeBoard: timeBoard, numberBoard: numberBoard});
+        res.status(200).json({ timeBoard: normalizedTimeBoard, numberBoard: normalizedNumberBoard });
 
     } catch (err) {
         console.log('С загрузкой данных произошла ошибка ' + err);
         res.status(500).json({
             message: 'Не удалось получить данные'
-        })
+        });
     }
-
 }
+
 
 export const changeAccountData = async (req, res) => {
 
