@@ -1,34 +1,37 @@
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
-import jwt from "jsonwebtoken";
 import 'dotenv/config.js';
+import * as TokenService from '../services/TokenService.js'
 
 export const register = async (req, res) => {
 
     try {
 
-        const password = req.body.password;
+        const { password, email, name } = req.body
+
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const existUserWithEmail = await User.findOne({ email: req.body.email });
-        if (existUserWithEmail) {
-            return res.status(400).json({ message: 'E-mail уже используется' });
-        }
+        const isExistUserWithName = await User.findOne({ name });
 
-        const existUserWithName = await User.findOne({ name: req.body.name });
-        if (existUserWithName) {
+        if (isExistUserWithName) {
             return res.status(400).json({ message: 'Имя занято' });
         }
 
+        const isExistUserWithEmail = await User.findOne({ email });
+
+        if (isExistUserWithEmail) {
+            return res.status(400).json({ message: 'E-mail уже используется' });
+        }
+
         const document = new User({
-            email: req.body.email,
-            name: req.body.name,
+            email,
+            name,
             password: passwordHash,
         });
 
         const user = await document.save();
-        const token = jwt.sign({_id: user._id}, process.env.SECRET, {expiresIn: '1d'});
+        const token = TokenService.createToken({_id: user._id});
 
         res.json({token});
 
@@ -60,7 +63,7 @@ export const login = async (req, res) => {
             })
         }
 
-        const token = jwt.sign({_id: user._id}, process.env.SECRET, {expiresIn: '1d'});
+        const token = TokenService.createToken({_id: user._id});
 
         res.json({token})
 
