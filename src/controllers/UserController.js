@@ -2,8 +2,9 @@ import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import 'dotenv/config.js';
 import * as TokenService from '../services/TokenService.js'
+import {ApiError} from "../api/ApiError.js";
 
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
 
     try {
 
@@ -15,13 +16,13 @@ export const register = async (req, res) => {
         const isExistUserWithName = await User.findOne({ name });
 
         if (isExistUserWithName) {
-            return res.status(400).json({ message: 'Имя занято' });
+            return next(ApiError.BadRequest('Имя занято'));
         }
 
         const isExistUserWithEmail = await User.findOne({ email });
 
         if (isExistUserWithEmail) {
-            return res.status(400).json({ message: 'E-mail уже используется' });
+            return next(ApiError.BadRequest('E-mail уже используется'));
         }
 
         const document = new User({
@@ -36,31 +37,25 @@ export const register = async (req, res) => {
         res.json({token});
 
     } catch (err) {
-        console.log('Ошибка с сервером ' + err)
-        res.status(500).json({
-            message: 'Ошибка сервера'
-        })
+        console.log('Ошибка с сервером ' + err);
+        next(err);
     }
 }
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
 
     try {
 
         const user = await User.findOne({email: req.body.email})
 
         if (!user) {
-            return res.status(404).json({
-                message: 'Пользователь не найден'
-            })
+            return next(ApiError.NotFound('Пользователь не найден'));
         }
 
         const isValidPass = await bcrypt.compare(req.body.password, user.password);
 
         if (!isValidPass) {
-            return res.status(400).json({
-                message: 'Неверный логин или пароль'
-            })
+            return next(ApiError.BadRequest('Неверный логин или пароль'));
         }
 
         const token = TokenService.createToken({_id: user._id});
@@ -69,9 +64,7 @@ export const login = async (req, res) => {
 
     } catch (err) {
         console.log('Ошибка с сервером ' + err);
-        res.status(500).json({
-            message: 'Не удалось авторизоваться'
-        })
+        next(err);
     }
 }
 
@@ -84,23 +77,21 @@ export const getMe = async (req, res) => {
         })
 
     } catch (err) {
-        console.log(err)
+        console.log('Ошибка с сервером ' + err);
         res.status(500).json({
             message: 'Ошибка авторизации'
         })
     }
 }
 
-export const getUserAvatar = async (req, res) => {
+export const getUserAvatar = async (req, res, next) => {
 
     try {
 
         const user = await User.findById(req.userId, {avatarSeed: 1});
 
         if (!user) {
-            return res.status(404).json({
-                message: 'Пользователь не найден'
-            })
+            return next(ApiError.NotFound('Пользователь не найден'));
         }
 
         res.json({
@@ -108,10 +99,8 @@ export const getUserAvatar = async (req, res) => {
         });
 
     } catch (err) {
-        console.log(err);
-        res.status(500).json({
-            message: 'Ошибка при загрузке аватара'
-        })
+        console.log('Ошибка с сервером ' + err);
+        next(err);
     }
 
 }
@@ -130,7 +119,7 @@ export const saveUserAvatar = async (req, res) => {
         })
 
     } catch(err) {
-        console.log(err);
+        console.log('Ошибка с сервером ' + err);
         res.status(500).json({
             message: 'Ошибка при сохранении сида аватарки'
         })

@@ -9,6 +9,7 @@ import * as AccountController from './src/controllers/AccountController.js'
 import HandleValidationsErrors from "./src/utils/HandleValidationsErrors.js";
 import 'dotenv/config.js';
 import {checkPassword} from "./src/utils/CheckPassword.js";
+import {ErrorMiddleware} from "./src/middleware/ErrorMiddleware.js";
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('База подключена'))
@@ -45,6 +46,8 @@ app.post('/session', checkAuth, SessionController.saveSession);
 app.get('/account/info', checkAuth, AccountController.getAccountUserInfo);
 app.get('/account/highlight', checkAuth, AccountController.getAccountDataHighlight);
 app.get('/account/name', checkAuth, AccountController.getName);
+
+app.use(ErrorMiddleware);
 
 app.listen(process.env.PORT || PORT, (err) => {
     if (err) {
