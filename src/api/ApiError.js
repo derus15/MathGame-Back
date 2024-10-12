@@ -10,7 +10,7 @@ export class ApiError extends Error {
     }
 
     static ForbiddenError() {
-        return new ApiError(403, 'У вас нет доступа');
+        return new ApiError(403, 'Нет доступа');
     }
 
     static BadRequest(message) {

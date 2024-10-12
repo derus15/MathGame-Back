@@ -1,15 +1,15 @@
 import jwt from 'jsonwebtoken'
 import 'dotenv/config.js';
+import {ApiError} from "../api/ApiError.js";
 
 export default (req, res, next) => {
 
     const token = (req.headers.authorization)
-
     // const token = (req.headers.authorization || '').split(' ')[1]
 
-    if (token) {
-
         try {
+
+            if(!token) { return next(ApiError.ForbiddenError())}
 
             const decoded = jwt.verify(token, process.env.SECRET);
 
@@ -19,16 +19,9 @@ export default (req, res, next) => {
         } catch (err) {
 
             return res.status(403).json({
-                message: 'нет доступа'
+                message: 'Нет доступа'
             })
 
         }
 
-    } else {
-
-        return res.status(408).json({
-            message: 'Нет доступа'
-
-        })
-    }
 }
