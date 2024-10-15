@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import 'dotenv/config.js';
 import * as TokenService from '../services/TokenService.js'
 import {ApiError} from "../api/ApiError.js";
+import jwt from "jsonwebtoken";
 
 export const register = async (req, res, next) => {
 
@@ -32,9 +33,9 @@ export const register = async (req, res, next) => {
         });
 
         const user = await document.save();
-        const token = TokenService.createToken({_id: user._id});
+        const {accessToken} = TokenService.createToken({_id: user._id});
 
-        res.json({token});
+        res.json({token: accessToken});
 
     } catch (err) {
         console.log('Ошибка с сервером ' + err);
@@ -58,14 +59,59 @@ export const login = async (req, res, next) => {
             return next(ApiError.BadRequest('Неверный логин или пароль'));
         }
 
-        const token = TokenService.createToken({_id: user._id});
+        const {accessToken} = TokenService.createToken({_id: user._id});
 
-        res.json({token})
+        res.json({token: accessToken})
 
     } catch (err) {
         console.log('Ошибка с сервером ' + err);
         next(err);
     }
+}
+
+export const refreshToken = async (req, res, next) => {
+
+    try {
+
+        const {refreshToken} = req.cookies;
+
+        if (!refreshToken) {
+            return next(ApiError.UnauthorizedError());
+        }
+
+        const isVerify = jwt.verify(refreshToken, process.env.SECRET);
+        req.userId = decoded._id;
+
+        if (isVerify) {
+            return next(ApiError.ForbiddenError());
+        }
+
+        const user = await User.findById(req.userId);
+
+        const newTokens = TokenService.createToken({_id: user._id});
+        res.cookie('refreshToken', newTokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true});
+
+        return res.json({
+            accessToken: newTokens.accessToken
+        });
+
+    } catch (err) {
+        next(err);
+    }
+
+}
+
+export const logout = async (req, res, next) => {
+
+    try {
+
+        res.clearCookie('refreshToken', { httpOnly: true });
+        return res.json({message: 'Токен аннулирован'});
+
+    } catch (err) {
+        next(err);
+    }
+
 }
 
 export const getMe = async (req, res) => {

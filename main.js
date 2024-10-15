@@ -35,6 +35,8 @@ app.use(cors({
 
 app.post('/auth/register', registerValidator, HandleValidationsErrors, UserController.register)
 app.post('/auth/login', loginValidator, HandleValidationsErrors, UserController.login);
+app.post('/auth/logout', checkAuth, UserController.logout);
+app.get('/auth/refresh', UserController.refreshToken)
 app.get('/auth/init', checkAuth, UserController.getMe);
 
 app.patch('/user/changeData', checkAuth, updateDataValidator, HandleValidationsErrors, AccountController.changeAccountData);
