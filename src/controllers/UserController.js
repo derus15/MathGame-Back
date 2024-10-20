@@ -59,7 +59,8 @@ export const login = async (req, res, next) => {
             return next(ApiError.BadRequest('Неверный логин или пароль'));
         }
 
-        const {accessToken} = TokenService.createToken({_id: user._id});
+        const {accessToken, refreshToken} = TokenService.createToken({_id: user._id});
+        res.cookie('refreshToken', refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true});
 
         res.json({token: accessToken})
 
@@ -79,10 +80,10 @@ export const refreshToken = async (req, res, next) => {
             return next(ApiError.UnauthorizedError());
         }
 
-        const isVerify = jwt.verify(refreshToken, process.env.SECRET);
-        req.userId = decoded._id;
-
-        if (isVerify) {
+        try {
+            const isDecoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
+            req.userId = isDecoded._id;
+        } catch (e) {
             return next(ApiError.ForbiddenError());
         }
 
@@ -96,6 +97,7 @@ export const refreshToken = async (req, res, next) => {
         });
 
     } catch (err) {
+        console.log(err);
         next(err);
     }
 

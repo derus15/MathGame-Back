@@ -10,6 +10,7 @@ import HandleValidationsErrors from "./src/utils/HandleValidationsErrors.js";
 import 'dotenv/config.js';
 import {checkPassword} from "./src/utils/CheckPassword.js";
 import {ErrorMiddleware} from "./src/middleware/ErrorMiddleware.js";
+import cookieParser from "cookie-parser";
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('База подключена'))
@@ -19,23 +20,27 @@ mongoose.connect(process.env.MONGO_URI)
 
 const app = express();
 const PORT = 3020;
-const whiteList = [ process.env.CORS_WHITE_LIST ];
 
 app.use(express.json());
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        if (whiteList.indexOf(origin) === -1) {
-            const msg = 'CORS Error';
-            return callback(new Error(msg), false);
-        }
-        return callback(null, true);
+app.use(cookieParser());
+
+const whiteList = [ process.env.CORS_WHITE_LIST ];
+const corsOptionsDelegate = function (req, callback) {
+    let corsOptions;
+    if (whiteList.indexOf(req.header('Origin')) !== -1) {
+        corsOptions = { origin: true, credentials: true }
+    } else {
+        corsOptions = { origin: false }
     }
-}));
+    callback(null, corsOptions);
+
+}
+
+app.use(cors(corsOptionsDelegate));
 
 app.post('/auth/register', registerValidator, HandleValidationsErrors, UserController.register)
 app.post('/auth/login', loginValidator, HandleValidationsErrors, UserController.login);
-app.post('/auth/logout', checkAuth, UserController.logout);
+app.get('/auth/logout', UserController.logout);
 app.get('/auth/refresh', UserController.refreshToken)
 app.get('/auth/init', checkAuth, UserController.getMe);
 
