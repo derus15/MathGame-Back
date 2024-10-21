@@ -33,8 +33,18 @@ export const register = async (req, res, next) => {
         });
 
         const user = await document.save();
-        const {accessToken} = TokenService.createToken({_id: user._id});
-
+        const {accessToken, refreshToken} = TokenService.createToken({_id: user._id});
+        res.cookie(
+            'refreshToken',
+            refreshToken,
+            {
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+                domain: '.math-game.ru'
+            }
+        );
         res.json({token: accessToken});
 
     } catch (err) {
@@ -60,7 +70,17 @@ export const login = async (req, res, next) => {
         }
 
         const {accessToken, refreshToken} = TokenService.createToken({_id: user._id});
-        res.cookie('refreshToken', refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true});
+        res.cookie(
+            'refreshToken',
+            refreshToken,
+            {
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+                domain: '.math-game.ru'
+            }
+        );
 
         res.json({token: accessToken})
 
@@ -90,7 +110,17 @@ export const refreshToken = async (req, res, next) => {
         const user = await User.findById(req.userId);
 
         const newTokens = TokenService.createToken({_id: user._id});
-        res.cookie('refreshToken', newTokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true});
+        res.cookie(
+            'refreshToken',
+            newTokens.refreshToken,
+            {
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+                domain: '.math-game.ru'
+            }
+        );
 
         return res.json({
             accessToken: newTokens.accessToken
