@@ -1,202 +1,200 @@
-import User from "../models/User.js";
-import Session from "../models/Session.js";
-import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import {timeNormalization} from "../utils/timeNormalization.js";
+import { PrismaClient } from '../generated/prisma/client.js'
+
+const prisma = new PrismaClient()
 
 export const getAccountUserInfo = async (req, res) => {
-
     try {
+        const userId = req.userId
 
-        const user = await User.findById(req.userId, {name: 1});
-        const timeInfo = await Session.aggregate([
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true }
+        })
 
-            {$match: {user: new mongoose.Types.ObjectId(req.userId)}},
-            {$group: {_id: "$user", totalTime: {$sum: "$time"}}},
+        if (!user) {
+            return res.status(404).json({ message: 'Пользователь не найден' })
+        }
 
-        ]);
+        const timeAgg = await prisma.session.aggregate({
+            where: { userId },
+            _sum: { time: true }
+        })
 
-        const exampleInfo = await Session.aggregate([
-
-            {$match: {user: new mongoose.Types.ObjectId(req.userId)}},
-            {$group: {_id: "$user", totalExample: {$sum: "$number"}}},
-
-        ]);
+        const exampleAgg = await prisma.session.aggregate({
+            where: { userId },
+            _sum: { number: true }
+        })
 
         const result = {
             user,
-            totalTimeInfo: timeInfo[0]?.totalTime || 0,
-            totalExampleInfo: exampleInfo[0]?.totalExample || 0,
+            totalTimeInfo: timeAgg._sum.time || 0,
+            totalExampleInfo: exampleAgg._sum.number || 0
         }
 
-        res.status(200).json(result);
-
+        res.status(200).json(result)
     } catch (err) {
-        console.log('С загрузкой данных произошла ошибка ' + err);
+        console.log('С загрузкой данных произошла ошибка ' + err)
         res.status(500).json({
             message: 'Не удалось получить данные'
         })
     }
-
 }
 
 export const getAccountDataHighlight = async (req, res) => {
-
     try {
+        const userId = req.userId
 
-        const user = new mongoose.Types.ObjectId(req.userId);
+        const timeOptions = [15, 30, 60]
+        const numberOptions = [10, 15, 20]
 
-        const timeOptions = [15, 30, 60];
-        const numberOptions = [10, 15, 20];
-
-        const timeBoard = await Session.aggregate([
-            {
-                $match: {
-                    user: user,
-                    unexpectedEnd: false,
-                    mode: 'Стандарт',
-                    $or: timeOptions.map(time => ({ time }))
-                }
+        const standardSessions = await prisma.session.findMany({
+            where: {
+                userId,
+                unexpectedEnd: false,
+                mode: 'Стандарт',
+                time: { in: timeOptions }
             },
-            {
-                $group: {
-                    _id: "$time",
-                    title: { $max: "$time" },
-                    eps: { $max: "$eps" },
-                    additionalParameter: { $max: "$number" }
-                }
-            },
-            {
-                $sort: { _id: 1 }
+            select: {
+                time: true,
+                eps: true,
+                number: true
             }
-        ]);
+        })
 
-        const numberBoard = await Session.aggregate([
-            {
-                $match: {
-                    user: user,
-                    unexpectedEnd: false,
-                    mode: 'Спринт',
-                    $or: numberOptions.map(number => ({ number }))
-                }
+        const sprintSessions = await prisma.session.findMany({
+            where: {
+                userId,
+                unexpectedEnd: false,
+                mode: 'Спринт',
+                number: { in: numberOptions }
             },
-            {
-                $group: {
-                    _id: "$number",
-                    title: { $max: "$number" },
-                    eps: { $max: "$eps" },
-                    additionalParameter: { $min: "$time" }
-                }
-            },
-            {
-                $sort: { _id: 1 }
+            select: {
+                number: true,
+                eps: true,
+                time: true
             }
-        ]);
+        })
 
-        const normalizedTimeBoard = timeOptions.map(option => {
-            const item = timeBoard.find(item => item._id === option);
-            return {
-                title: timeNormalization(item ? item.title : option),
-                eps: item ? item.eps : null,
-                additionalParameter: item ? item.additionalParameter : null
-            };
-        });
+        const groupedTimeBoard = Object.fromEntries(
+            timeOptions.map(option => {
+                const filtered = standardSessions.filter(s => s.time === option)
+                const best = filtered.reduce((acc, curr) => {
+                    if (!acc || (curr.eps > acc.eps)) return curr
+                    return acc
+                }, null)
 
-        const normalizedNumberBoard = numberOptions.map(option => {
-            const item = numberBoard.find(item => item._id === option);
-            return {
-                title: item ? item.title : option,
-                eps: item ? item.eps : null,
-                additionalParameter: item ? timeNormalization(item.additionalParameter) : null
-            };
-        });
+                return [
+                    option,
+                    {
+                        title: timeNormalization(option),
+                        eps: best?.eps ?? null,
+                        additionalParameter: best?.number ?? null
+                    }
+                ]
+            })
+        )
 
-        res.status(200).json({ timeBoard: normalizedTimeBoard, numberBoard: normalizedNumberBoard });
+        const groupedNumberBoard = Object.fromEntries(
+            numberOptions.map(option => {
+                const filtered = sprintSessions.filter(s => s.number === option)
+                const best = filtered.reduce((acc, curr) => {
+                    if (!acc || (curr.eps > acc.eps)) return curr
+                    return acc
+                }, null)
 
+                return [
+                    option,
+                    {
+                        title: option,
+                        eps: best?.eps ?? null,
+                        additionalParameter: best?.time ? timeNormalization(best.time) : null
+                    }
+                ]
+            })
+        )
+
+        const normalizedTimeBoard = timeOptions.map(t => groupedTimeBoard[t])
+        const normalizedNumberBoard = numberOptions.map(n => groupedNumberBoard[n])
+
+        res.status(200).json({
+            timeBoard: normalizedTimeBoard,
+            numberBoard: normalizedNumberBoard
+        })
     } catch (err) {
-        console.log('С загрузкой данных произошла ошибка ' + err);
+        console.log('С загрузкой данных произошла ошибка ' + err)
         res.status(500).json({
             message: 'Не удалось получить данные'
-        });
+        })
     }
 }
 
-
 export const changeAccountData = async (req, res) => {
-
     try {
+        const { name: newNameRaw, password: newPasswordRaw } = req.body
+        const userId = req.userId
 
-        const user = await User.findById(req.userId);
-        const isEqualPass = await bcrypt.compare(req.body.password, user.password);
-
-        const password = req.body.password;
-        const salt = await bcrypt.genSalt(10);
-
-        let newName =  req.body.name;
-        let newPassword = await bcrypt.hash(password, salt);
-
-        if (isEqualPass) {
-            return res.status(400).json({ message: 'Вы используете старый пароль' });
+        if (!newNameRaw && !newPasswordRaw) {
+            return res.status(400).json({ message: 'Нет данных' })
         }
 
-        const existUserWithName = await User.findOne({ name: req.body.name });
-        if (existUserWithName) {
-            return res.status(400).json({ message: 'Имя занято' });
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        })
+
+        if (!user) {
+            return res.status(404).json({ message: 'Пользователь не найден' })
         }
 
-        if (!req.body.name && !req.body.password) {
-            return res.status(400).json({
-                message: 'Нет данных'
-            });
-        }
-
-        if (!req.body.name) {
-            newName = user.name;
-        }
-
-        if (!req.body.password) {
-            newPassword = user.password;
-        }
-
-        await User.updateOne(
-            { _id: req.userId },
-            { $set:
-                    {
-                        name: newName,
-                        password: newPassword,
-                    }
+        if (newNameRaw && newNameRaw !== user.name) {
+            const existUserWithName = await prisma.user.findUnique({
+                where: { name: newNameRaw }
+            })
+            if (existUserWithName) {
+                return res.status(400).json({ message: 'Имя занято' })
             }
-        );
+        }
 
-        res.status(200).json({
-            message: 'Данные обновлены'
-        });
+        let newHashedPassword = user.password
+        if (newPasswordRaw) {
+            const isEqualPass = await bcrypt.compare(newPasswordRaw, user.password)
+            if (isEqualPass) {
+                return res.status(400).json({ message: 'Вы используете старый пароль' })
+            }
+            const salt = await bcrypt.genSalt(10)
+            newHashedPassword = await bcrypt.hash(newPasswordRaw, salt)
+        }
 
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                name: newNameRaw || user.name,
+                password: newHashedPassword
+            }
+        })
+
+        res.status(200).json({ message: 'Данные обновлены' })
     } catch (err) {
-        res.status(500).json({
-            message: 'Не удалось обновить данные'
-        });
+        console.log(err)
+        res.status(500).json({ message: 'Не удалось обновить данные' })
     }
 }
 
 export const getName = async (req, res) => {
-
     try {
-
-        const user = await User.findById(req.userId, {name: 1});
+        const user = await prisma.user.findUnique({
+            where: { id: req.userId },
+            select: { name: true }
+        })
 
         if (!user) {
-            return res.status(404).json({
-                message: 'Пользователь не найден'
-            })
+            return res.status(404).json({ message: 'Пользователь не найден' })
         }
 
-        res.json(user);
-
+        res.json(user)
     } catch (err) {
         console.log(err)
-        res.status(500).json({
-            message: 'Нет доступа'
-        })
+        res.status(500).json({ message: 'Нет доступа' })
     }
 }

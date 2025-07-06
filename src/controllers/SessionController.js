@@ -1,30 +1,39 @@
-import Session from "../models/Session.js";
+import { PrismaClient } from '../generated/prisma/client.js'
+
+const prisma = new PrismaClient()
 
 export const saveSession = async (req, res) => {
-
     try {
+        const {
+            sign,
+            mode,
+            time,
+            rounds,
+            number,
+            eps,
+            modifications,
+            unexpectedEnd,
+        } = req.body
 
-        const session = new Session({
-
-            sign: req.body.sign,
-            mode: req.body.mode,
-            time: req.body.time,
-            rounds: req.body.rounds,
-            number: req.body.number,
-            eps: req.body.eps,
-            modifications: req.body.modifications,
-            unexpectedEnd: req.body.unexpectedEnd,
-            user: req.userId,
-
+        const result = await prisma.session.create({
+            data: {
+                sign,
+                mode,
+                time,
+                rounds,
+                number,
+                eps,
+                modifications,
+                unexpectedEnd,
+                userId: req.userId,
+            },
         })
 
-        const result = await session.save();
         res.status(200).json(result)
-
     } catch (err) {
-        console.log('С отправкой сессии произошла ошибка ' + err);
+        console.log('С отправкой сессии произошла ошибка ' + err)
         res.status(500).json({
-            message: 'Не удалось отправить данные сессии'
+            message: 'Не удалось отправить данные сессии',
         })
     }
 }

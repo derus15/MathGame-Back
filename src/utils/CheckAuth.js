@@ -11,9 +11,9 @@ export default (req, res, next) => {
 
             if(!token) { return next(ApiError.ForbiddenError())}
 
-            const decoded = jwt.verify(token, process.env.SECRET);
+            const decoded = jwt.verify(token, process.env.SECRET || '123');
 
-            req.userId = decoded._id;
+            req.userId = decoded.id;
             next();
 
         } catch (err) {
