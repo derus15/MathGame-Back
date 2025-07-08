@@ -10,9 +10,6 @@ import 'dotenv/config.js';
 import {checkPassword} from "./src/utils/CheckPassword.js";
 import {ErrorMiddleware} from "./src/middleware/ErrorMiddleware.js";
 import cookieParser from "cookie-parser";
-import { PrismaClient } from './src/generated/prisma/client.js'
-
-const prisma = new PrismaClient()
 
 const app = express();
 const PORT = 3000;

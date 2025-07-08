@@ -1,6 +1,5 @@
-import { PrismaClient } from '../generated/prisma/client.js'
-
-const prisma = new PrismaClient()
+import { sessions } from "../../db/schema.js";
+import {db} from "../../db/client.js";
 
 export const saveSession = async (req, res) => {
     try {
@@ -13,10 +12,11 @@ export const saveSession = async (req, res) => {
             eps,
             modifications,
             unexpectedEnd,
-        } = req.body
+        } = req.body;
 
-        const result = await prisma.session.create({
-            data: {
+        const [result] = await db
+            .insert(sessions)
+            .values({
                 sign,
                 mode,
                 time,
@@ -26,14 +26,14 @@ export const saveSession = async (req, res) => {
                 modifications,
                 unexpectedEnd,
                 userId: req.userId,
-            },
-        })
+            })
+            .returning();
 
-        res.status(200).json(result)
+        res.status(200).json(result);
     } catch (err) {
-        console.log('С отправкой сессии произошла ошибка ' + err)
+        console.log('С отправкой сессии произошла ошибка:', err);
         res.status(500).json({
             message: 'Не удалось отправить данные сессии',
-        })
+        });
     }
-}
+};

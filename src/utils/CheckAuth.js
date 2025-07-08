@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import 'dotenv/config.js';
-import {ApiError} from "../api/ApiError.js";
+import { ApiError } from "../api/ApiError.js";
 
 export default (req, res, next) => {
 
