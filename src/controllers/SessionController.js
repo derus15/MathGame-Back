@@ -1,30 +1,39 @@
-import Session from "../models/Session.js";
+import { sessions } from "../../db/schema.js";
+import {db} from "../../db/client.js";
 
 export const saveSession = async (req, res) => {
-
     try {
+        const {
+            sign,
+            mode,
+            time,
+            rounds,
+            number,
+            eps,
+            modifications,
+            unexpectedEnd,
+        } = req.body;
 
-        const session = new Session({
+        const [result] = await db
+            .insert(sessions)
+            .values({
+                sign,
+                mode,
+                time,
+                rounds,
+                number,
+                eps,
+                modifications,
+                unexpectedEnd,
+                userId: req.userId,
+            })
+            .returning();
 
-            sign: req.body.sign,
-            mode: req.body.mode,
-            time: req.body.time,
-            rounds: req.body.rounds,
-            number: req.body.number,
-            eps: req.body.eps,
-            modifications: req.body.modifications,
-            unexpectedEnd: req.body.unexpectedEnd,
-            user: req.userId,
-
-        })
-
-        const result = await session.save();
-        res.status(200).json(result)
-
+        res.status(200).json(result);
     } catch (err) {
-        console.log('С отправкой сессии произошла ошибка ' + err);
+        console.log('С отправкой сессии произошла ошибка:', err);
         res.status(500).json({
-            message: 'Не удалось отправить данные сессии'
-        })
+            message: 'Не удалось отправить данные сессии',
+        });
     }
-}
+};

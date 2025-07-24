@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import 'dotenv/config.js';
-import {ApiError} from "../api/ApiError.js";
+import { ApiError } from "../api/ApiError.js";
 
 export default (req, res, next) => {
 
@@ -11,9 +11,9 @@ export default (req, res, next) => {
 
             if(!token) { return next(ApiError.ForbiddenError())}
 
-            const decoded = jwt.verify(token, process.env.SECRET);
+            const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
 
-            req.userId = decoded._id;
+            req.userId = decoded.id;
             next();
 
         } catch (err) {

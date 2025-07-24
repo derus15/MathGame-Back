@@ -1,5 +1,4 @@
 import express from 'express';
-import mongoose from "mongoose";
 import {loginValidator, registerValidator, updateDataValidator} from "./src/utils/Validators.js";
 import checkAuth from "./src/utils/CheckAuth.js";
 import cors from 'cors';
@@ -12,19 +11,13 @@ import {checkPassword} from "./src/utils/CheckPassword.js";
 import {ErrorMiddleware} from "./src/middleware/ErrorMiddleware.js";
 import cookieParser from "cookie-parser";
 
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('База подключена'))
-    .catch((err) => {
-        console.log(err)
-    })
-
 const app = express();
-const PORT = 3020;
+const PORT = 3000;
 
 app.use(express.json());
 app.use(cookieParser());
 
-const whiteList = [ process.env.CORS_WHITE_LIST ];
+const whiteList = [ 'http://localhost:3001', 'https://math-game-sepia.vercel.app' ];
 const corsOptionsDelegate = function (req, callback) {
     let corsOptions;
     if (whiteList.indexOf(req.header('Origin')) !== -1) {
@@ -56,9 +49,9 @@ app.get('/account/name', checkAuth, AccountController.getName);
 
 app.use(ErrorMiddleware);
 
-app.listen(process.env.PORT || PORT, (err) => {
+app.listen(PORT, '0.0.0.0', (err) => {
     if (err) {
         console.log(err)
     }
-    console.log('Сервер работает на порту ' + PORT)
+    console.log(`Server работает на порту ${PORT}`)
 })

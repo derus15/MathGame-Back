@@ -1,202 +1,194 @@
-import User from "../models/User.js";
-import Session from "../models/Session.js";
-import mongoose from "mongoose";
-import bcrypt from "bcrypt";
-import {timeNormalization} from "../utils/timeNormalization.js";
+import {eq, inArray, and, sum} from 'drizzle-orm';
+import bcrypt from 'bcrypt';
+import { users, sessions } from "../../db/schema.js";
+import { timeNormalization } from '../utils/timeNormalization.js';
+import 'dotenv/config.js';
+import { db } from "../../db/client.js";
 
 export const getAccountUserInfo = async (req, res) => {
-
     try {
+        const userId = Number(req.userId);
 
-        const user = await User.findById(req.userId, {name: 1});
-        const timeInfo = await Session.aggregate([
+        const user = await db.query.users.findFirst({
+            columns: { name: true },
+            where: eq(users.id, userId),
+        });
 
-            {$match: {user: new mongoose.Types.ObjectId(req.userId)}},
-            {$group: {_id: "$user", totalTime: {$sum: "$time"}}},
-
-        ]);
-
-        const exampleInfo = await Session.aggregate([
-
-            {$match: {user: new mongoose.Types.ObjectId(req.userId)}},
-            {$group: {_id: "$user", totalExample: {$sum: "$number"}}},
-
-        ]);
-
-        const result = {
-            user,
-            totalTimeInfo: timeInfo[0]?.totalTime || 0,
-            totalExampleInfo: exampleInfo[0]?.totalExample || 0,
+        if (!user) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
         }
 
-        res.status(200).json(result);
+        const sessionData = await db
+            .select({
+                totalTime: sum(sessions.time).as('totalTime'),
+                totalExample: sum(sessions.number).as('totalExample'),
+            })
+            .from(sessions)
+            .where(eq(sessions.userId, userId));
 
+        const { totalTime = 0, totalExample = 0 } = sessionData[0] || {};
+
+        res.status(200).json({
+            user,
+            totalTimeInfo: totalTime,
+            totalExampleInfo: totalExample,
+        });
     } catch (err) {
         console.log('С загрузкой данных произошла ошибка ' + err);
-        res.status(500).json({
-            message: 'Не удалось получить данные'
-        })
+        res.status(500).json({ message: 'Не удалось получить данные' });
     }
-
-}
+};
 
 export const getAccountDataHighlight = async (req, res) => {
-
     try {
-
-        const user = new mongoose.Types.ObjectId(req.userId);
-
+        const userId = Number(req.userId);
         const timeOptions = [15, 30, 60];
         const numberOptions = [10, 15, 20];
 
-        const timeBoard = await Session.aggregate([
-            {
-                $match: {
-                    user: user,
-                    unexpectedEnd: false,
-                    mode: 'Стандарт',
-                    $or: timeOptions.map(time => ({ time }))
-                }
-            },
-            {
-                $group: {
-                    _id: "$time",
-                    title: { $max: "$time" },
-                    eps: { $max: "$eps" },
-                    additionalParameter: { $max: "$number" }
-                }
-            },
-            {
-                $sort: { _id: 1 }
-            }
-        ]);
+        const standardSessions = await db
+            .select({
+                time: sessions.time,
+                eps: sessions.eps,
+                number: sessions.number,
+            })
+            .from(sessions)
+            .where(
+                and(
+                    eq(sessions.userId, userId),
+                    eq(sessions.mode, 'Стандарт'),
+                    eq(sessions.unexpectedEnd, false),
+                    inArray(sessions.time, timeOptions)
+                )
+            );
 
-        const numberBoard = await Session.aggregate([
-            {
-                $match: {
-                    user: user,
-                    unexpectedEnd: false,
-                    mode: 'Спринт',
-                    $or: numberOptions.map(number => ({ number }))
-                }
-            },
-            {
-                $group: {
-                    _id: "$number",
-                    title: { $max: "$number" },
-                    eps: { $max: "$eps" },
-                    additionalParameter: { $min: "$time" }
-                }
-            },
-            {
-                $sort: { _id: 1 }
-            }
-        ]);
+        const sprintSessions = await db
+            .select({
+                number: sessions.number,
+                eps: sessions.eps,
+                time: sessions.time,
+            })
+            .from(sessions)
+            .where(
+                and(
+                    eq(sessions.userId, userId),
+                    eq(sessions.mode, 'Спринт'),
+                    eq(sessions.unexpectedEnd, false),
+                    inArray(sessions.number, numberOptions)
+                )
+            );
 
-        const normalizedTimeBoard = timeOptions.map(option => {
-            const item = timeBoard.find(item => item._id === option);
-            return {
-                title: timeNormalization(item ? item.title : option),
-                eps: item ? item.eps : null,
-                additionalParameter: item ? item.additionalParameter : null
-            };
-        });
+        const groupedTimeBoard = Object.fromEntries(
+            timeOptions.map(option => {
+                const filtered = standardSessions.filter(s => s.time === option);
+                const best = filtered.reduce((acc, curr) => {
+                    if (!acc || (curr.eps > acc.eps)) return curr;
+                    return acc;
+                }, null);
 
-        const normalizedNumberBoard = numberOptions.map(option => {
-            const item = numberBoard.find(item => item._id === option);
-            return {
-                title: item ? item.title : option,
-                eps: item ? item.eps : null,
-                additionalParameter: item ? timeNormalization(item.additionalParameter) : null
-            };
-        });
-
-        res.status(200).json({ timeBoard: normalizedTimeBoard, numberBoard: normalizedNumberBoard });
-
-    } catch (err) {
-        console.log('С загрузкой данных произошла ошибка ' + err);
-        res.status(500).json({
-            message: 'Не удалось получить данные'
-        });
-    }
-}
-
-
-export const changeAccountData = async (req, res) => {
-
-    try {
-
-        const user = await User.findById(req.userId);
-        const isEqualPass = await bcrypt.compare(req.body.password, user.password);
-
-        const password = req.body.password;
-        const salt = await bcrypt.genSalt(10);
-
-        let newName =  req.body.name;
-        let newPassword = await bcrypt.hash(password, salt);
-
-        if (isEqualPass) {
-            return res.status(400).json({ message: 'Вы используете старый пароль' });
-        }
-
-        const existUserWithName = await User.findOne({ name: req.body.name });
-        if (existUserWithName) {
-            return res.status(400).json({ message: 'Имя занято' });
-        }
-
-        if (!req.body.name && !req.body.password) {
-            return res.status(400).json({
-                message: 'Нет данных'
-            });
-        }
-
-        if (!req.body.name) {
-            newName = user.name;
-        }
-
-        if (!req.body.password) {
-            newPassword = user.password;
-        }
-
-        await User.updateOne(
-            { _id: req.userId },
-            { $set:
+                return [
+                    option,
                     {
-                        name: newName,
-                        password: newPassword,
-                    }
-            }
+                        title: timeNormalization(option),
+                        eps: best?.eps ?? null,
+                        additionalParameter: best?.number ?? null,
+                    },
+                ];
+            })
+        );
+
+        const groupedNumberBoard = Object.fromEntries(
+            numberOptions.map(option => {
+                const filtered = sprintSessions.filter(s => s.number === option);
+                const best = filtered.reduce((acc, curr) => {
+                    if (!acc || (curr.eps > acc.eps)) return curr;
+                    return acc;
+                }, null);
+
+                return [
+                    option,
+                    {
+                        title: option,
+                        eps: best?.eps ?? null,
+                        additionalParameter: best?.time ? timeNormalization(best.time) : null,
+                    },
+                ];
+            })
         );
 
         res.status(200).json({
-            message: 'Данные обновлены'
+            timeBoard: timeOptions.map(t => groupedTimeBoard[t]),
+            numberBoard: numberOptions.map(n => groupedNumberBoard[n]),
         });
-
     } catch (err) {
-        res.status(500).json({
-            message: 'Не удалось обновить данные'
-        });
+        console.log('С загрузкой данных произошла ошибка ' + err);
+        res.status(500).json({ message: 'Не удалось получить данные' });
     }
-}
+};
 
-export const getName = async (req, res) => {
-
+export const changeAccountData = async (req, res) => {
     try {
+        const { name: newNameRaw, password: newPasswordRaw } = req.body;
+        const userId = Number(req.userId);
 
-        const user = await User.findById(req.userId, {name: 1});
+        if (!newNameRaw && !newPasswordRaw) {
+            return res.status(400).json({ message: 'Нет данных' });
+        }
+
+        const user = await db.query.users.findFirst({
+            where: eq(users.id, userId),
+        });
 
         if (!user) {
-            return res.status(404).json({
-                message: 'Пользователь не найден'
+            return res.status(404).json({ message: 'Пользователь не найден' });
+        }
+
+        if (newNameRaw && newNameRaw !== user.name) {
+            const nameExists = await db.query.users.findFirst({
+                where: eq(users.name, newNameRaw),
+            });
+            if (nameExists) {
+                return res.status(400).json({ message: 'Имя занято' });
+            }
+        }
+
+        let newPasswordHash = user.password;
+        if (newPasswordRaw) {
+            const isSamePass = await bcrypt.compare(newPasswordRaw, user.password);
+            if (isSamePass) {
+                return res.status(400).json({ message: 'Вы используете старый пароль' });
+            }
+            const salt = await bcrypt.genSalt(10);
+            newPasswordHash = await bcrypt.hash(newPasswordRaw, salt);
+        }
+
+        await db.update(users)
+            .set({
+                name: newNameRaw || user.name,
+                password: newPasswordHash,
             })
+            .where(eq(users.id, userId));
+
+        res.status(200).json({ message: 'Данные обновлены' });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: 'Не удалось обновить данные' });
+    }
+};
+
+export const getName = async (req, res) => {
+    try {
+        const user = await db.query.users.findFirst({
+            where: eq(users.id, Number(req.userId)),
+            columns: { name: true },
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
         }
 
         res.json(user);
-
     } catch (err) {
-        console.log(err)
-        res.status(500).json({
-            message: 'Нет доступа'
-        })
+        console.log(err);
+        res.status(500).json({ message: 'Нет доступа' });
     }
-}
+};
