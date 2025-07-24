@@ -3,9 +3,9 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mathgame
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
@@ -13,6 +13,9 @@ services:
 
   backend:
     build: .
+    env_file:
+      - .env
+    restart: always
     working_dir: /app
     command: npm start
     ports:

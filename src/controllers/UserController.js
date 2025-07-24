@@ -5,7 +5,7 @@ import { users } from "../../db/schema.js";
 import { eq } from "drizzle-orm";
 import * as TokenService from "../services/TokenService.js";
 import { ApiError } from "../api/ApiError.js";
-import {db} from "../../db/client.js";
+import { db } from "../../db/client.js";
 
 export const register = async (req, res, next) => {
     try {
@@ -87,7 +87,7 @@ export const refreshToken = async (req, res, next) => {
 
         let decoded;
         try {
-            decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET || "123refresh");
+            decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
         } catch (e) {
             return next(ApiError.ForbiddenError());
         }

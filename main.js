@@ -17,7 +17,7 @@ const PORT = 3000;
 app.use(express.json());
 app.use(cookieParser());
 
-const whiteList = [ process.env.CORS_WHITE_LIST || 'http://localhost:3001' ];
+const whiteList = [ 'http://localhost:3001', 'https://math-game-sepia.vercel.app' ];
 const corsOptionsDelegate = function (req, callback) {
     let corsOptions;
     if (whiteList.indexOf(req.header('Origin')) !== -1) {
@@ -49,7 +49,7 @@ app.get('/account/name', checkAuth, AccountController.getName);
 
 app.use(ErrorMiddleware);
 
-app.listen(PORT, (err) => {
+app.listen(PORT, '0.0.0.0', (err) => {
     if (err) {
         console.log(err)
     }

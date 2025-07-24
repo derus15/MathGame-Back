@@ -22,14 +22,14 @@ export const users = pgTable('users', {
 
 export const sessions = pgTable('sessions', {
     id: serial('id').primaryKey(),
-    sign: json('sign').notNull(),                     // массив чисел/строк в формате JSON
+    sign: json('sign').notNull(),
     mode: varchar('mode', { length: 20 }).notNull(),
     time: integer('time'),
     number: integer('number'),
     rounds: integer('rounds'),
     userId: integer('user_id').notNull().references(() => users.id),
     eps: varchar('eps', { length: 100 }),
-    modifications: json('modifications').notNull(),   // тоже массив
+    modifications: json('modifications').notNull(),
     unexpectedEnd: boolean('unexpected_end'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
